@@ -1,0 +1,10 @@
+感谢{speaker}的精彩分享！
+非常感谢{speaker}的演讲！
+{speaker}刚才的分享太精彩了！
+感谢{speaker}给我们带来这么好的内容！
+{speaker}的演讲太有启发性了！
+非常精彩的演讲！
+感谢{speaker}的精彩内容！
+太棒了，谢谢{speaker}！
+非常感谢{speaker}的分享！
+{speaker}的演讲让我受益匪浅！
