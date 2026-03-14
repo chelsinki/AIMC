@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIMC 数字人主持系统 · 调研报告 v2.0</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #ffffff;
+    --bg2: #f5f4f0;
+    --bg3: #eeece8;
+    --text: #1a1a18;
+    --text2: #5f5e5a;
+    --text3: #888780;
+    --border: rgba(0,0,0,0.12);
+    --border2: rgba(0,0,0,0.22);
+    --r-md: 8px;
+    --r-lg: 12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1e1e1c;
+      --bg2: #2a2a28;
+      --bg3: #323230;
+      --text: #e8e6de;
+      --text2: #b0ae a6;
+      --text3: #888780;
+      --border: rgba(255,255,255,0.1);
+      --border2: rgba(255,255,255,0.18);
+    }
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg3);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 24px 16px;
+  }
+  .page { max-width: 900px; margin: 0 auto; }
+  .header { margin-bottom: 20px; }
+  .header-top { display: flex; justify-content: space-between; align-items: flex-start; }
+  .title { font-size: 20px; font-weight: 600; color: var(--text); }
+  .subtitle { font-size: 13px; color: var(--text2); margin-top: 3px; }
+  .badge { font-size: 11px; padding: 3px 10px; border-radius: 12px; background: #fcebeb; color: #a32d2d; font-weight: 500; }
+
+  .tabs { display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; }
+  .tab {
+    padding: 7px 15px; font-size: 13px; border: 1px solid var(--border2);
+    border-radius: var(--r-md); cursor: pointer; color: var(--text2);
+    background: var(--bg); transition: all .15s; font-family: inherit;
+  }
+  .tab.active { background: var(--bg2); color: var(--text); font-weight: 500; border-color: var(--border2); }
+  .tab:hover:not(.active) { background: var(--bg2); }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .card {
+    background: var(--bg); border: 0.5px solid var(--border);
+    border-radius: var(--r-lg); padding: 16px 20px; margin-bottom: 12px;
+  }
+  .section-title { font-size: 14px; font-weight: 500; margin-bottom: 12px; color: var(--text); }
+
+  .metric-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 14px; }
+  .metric { background: var(--bg2); border-radius: var(--r-md); padding: 14px; text-align: center; }
+  .metric-val { font-size: 22px; font-weight: 600; display: block; margin-top: 4px; color: var(--text); }
+  .metric-lbl { font-size: 12px; color: var(--text2); }
+  .metric-sub { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+  .chip { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 500; }
+  .chip-p0 { background: #fcebeb; color: #a32d2d; }
+  .chip-p1 { background: #faeeda; color: #854f0b; }
+  .chip-p2 { background: #e6f1fb; color: #185fa5; }
+  .chip-high { background: #fcebeb; color: #a32d2d; }
+  .chip-mid { background: #faeeda; color: #854f0b; }
+  .chip-low { background: #eaf3de; color: #3b6d11; }
+
+  .table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .table th { text-align: left; padding: 8px 10px; font-weight: 500; color: var(--text2); border-bottom: 0.5px solid var(--border); font-size: 12px; }
+  .table td { padding: 8px 10px; border-bottom: 0.5px solid var(--border); color: var(--text); }
+  .table tr:last-child td { border-bottom: none; }
+  .table tr:hover td { background: var(--bg2); }
+
+  .goal-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  .goal-card { background: var(--bg2); border-radius: var(--r-md); padding: 14px; }
+  .goal-tag { font-size: 11px; font-weight: 500; margin-bottom: 8px; display: block; }
+  .tag-must { color: #0f6e56; background: #e1f5ee; border-radius: 4px; padding: 2px 7px; display: inline-block; }
+  .tag-should { color: #854f0b; background: #faeeda; border-radius: 4px; padding: 2px 7px; display: inline-block; }
+  .tag-could { color: #185fa5; background: #e6f1fb; border-radius: 4px; padding: 2px 7px; display: inline-block; }
+  .goal-item { font-size: 12px; color: var(--text2); margin: 4px 0; padding-left: 14px; position: relative; }
+  .goal-item::before { content: "✓"; position: absolute; left: 0; color: #1d9e75; font-size: 11px; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .agent-flow { display: flex; flex-direction: column; align-items: center; gap: 0; }
+  .agent-box { padding: 10px 18px; border-radius: var(--r-md); font-size: 13px; font-weight: 500; text-align: center; border: 1px solid; width: 100%; max-width: 340px; }
+  .agent-orch { background: #eeedfe; color: #3c3489; border-color: #534ab7; }
+  .agent-workers { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin: 8px 0; }
+  .agent-w { padding: 8px 10px; border-radius: var(--r-md); font-size: 12px; font-weight: 500; border: 0.5px solid; flex: 1; min-width: 100px; text-align: center; }
+  .agent-w1 { background: #e1f5ee; color: #085041; border-color: #1d9e75; }
+  .agent-w2 { background: #faeeda; color: #633806; border-color: #ba7517; }
+  .agent-w3 { background: #e6f1fb; color: #0c447c; border-color: #378add; }
+  .agent-w4 { background: #fbeaf0; color: #72243e; border-color: #d4537e; }
+  .agent-w5 { background: #faece7; color: #712b13; border-color: #d85a30; }
+  .conn-line { width: 1px; height: 20px; background: var(--border2); margin: 0 auto; }
+  .layer-label { font-size: 11px; color: var(--text3); text-align: left; width: 100%; max-width: 620px; margin-bottom: 4px; margin-top: 10px; letter-spacing: .05em; text-transform: uppercase; }
+  .layer-box { border: 1px dashed var(--border2); border-radius: var(--r-lg); padding: 12px; width: 100%; max-width: 620px; }
+
+  .state-flow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: center; padding: 8px 0; }
+  .state-pill { font-size: 12px; padding: 5px 12px; border-radius: 20px; }
+
+  .risk-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .risk-item { background: var(--bg2); border-radius: var(--r-md); padding: 12px; border-left: 3px solid; margin-bottom: 0; }
+  .risk-h { border-left-color: #e24b4a; }
+  .risk-m { border-left-color: #ef9f27; }
+  .risk-title { font-size: 13px; font-weight: 500; margin-bottom: 4px; color: var(--text); }
+  .risk-desc { font-size: 12px; color: var(--text2); margin-bottom: 6px; }
+  .risk-meta { display: flex; gap: 6px; flex-wrap: wrap; }
+
+  .timeline { position: relative; padding-left: 20px; }
+  .timeline::before { content: ""; position: absolute; left: 6px; top: 0; bottom: 0; width: 1px; background: var(--border2); }
+  .tl-item { position: relative; margin-bottom: 16px; }
+  .tl-dot { position: absolute; left: -17px; top: 3px; width: 10px; height: 10px; border-radius: 50%; border: 2px solid; }
+  .tl-dot-done { background: #1d9e75; border-color: #1d9e75; }
+  .tl-dot-active { background: #378add; border-color: #378add; }
+  .tl-dot-future { background: var(--bg); border-color: var(--border2); }
+  .tl-head { font-size: 13px; font-weight: 500; color: var(--text); }
+  .tl-date { font-size: 11px; color: var(--text3); margin-top: 1px; }
+  .tl-tasks { margin-top: 5px; font-size: 12px; color: var(--text2); }
+  .progress-bar { height: 6px; background: var(--bg3); border-radius: 3px; overflow: hidden; margin: 5px 0; }
+  .progress-fill { height: 100%; border-radius: 3px; }
+
+  .quality-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .quality-item { background: var(--bg2); border-radius: var(--r-md); padding: 14px; }
+  .quality-target { font-size: 20px; font-weight: 600; color: var(--text); }
+  .quality-label { font-size: 12px; color: var(--text2); margin-bottom: 4px; }
+  .quality-method { font-size: 11px; color: var(--text3); margin-top: 4px; }
+
+  .checklist-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  @media (max-width: 640px) {
+    .metric-grid { grid-template-columns: 1fr 1fr; }
+    .goal-grid, .two-col, .risk-grid, .quality-grid { grid-template-columns: 1fr; }
+    .agent-w { min-width: 80px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+<div class="header">
+  <div class="header-top">
+    <div>
+      <div class="title">AIMC 数字人主持系统</div>
+      <div class="subtitle">完整调研报告 v2.0 · 2026-03-13 · 基于 POMASA 架构</div>
+    </div>
+    <span class="badge">待审核</span>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('overview')">项目概述</button>
+  <button class="tab" onclick="switchTab('arch')">系统架构</button>
+  <button class="tab" onclick="switchTab('challenges')">核心挑战</button>
+  <button class="tab" onclick="switchTab('cost')">成本估算</button>
+  <button class="tab" onclick="switchTab('roadmap')">实施路线图</button>
+  <button class="tab" onclick="switchTab('risk')">风险分析</button>
+  <button class="tab" onclick="switchTab('quality')">质量保障</button>
+</div>
+
+<!-- 概述 -->
+<div id="panel-overview" class="panel active">
+  <div class="metric-grid">
+    <div class="metric">
+      <span class="metric-lbl">首年开发总成本</span>
+      <span class="metric-val">¥10.3万</span>
+      <div class="metric-sub">人力 + 硬件 + 软件</div>
+    </div>
+    <div class="metric">
+      <span class="metric-lbl">年度运营成本</span>
+      <span class="metric-val">¥3.4万</span>
+      <div class="metric-sub">云基础设施 + API</div>
+    </div>
+    <div class="metric">
+      <span class="metric-lbl">单场大会成本</span>
+      <span class="metric-val">¥61</span>
+      <div class="metric-sub">不含人力支持</div>
+    </div>
+    <div class="metric">
+      <span class="metric-lbl">目标上线时间</span>
+      <span class="metric-val">2026.12</span>
+      <div class="metric-sub">上海技术大会</div>
+    </div>
+  </div>
+
+  <div class="goal-grid" style="margin-bottom:12px">
+    <div class="goal-card">
+      <span class="goal-tag"><span class="tag-must">Must-have</span> 一级目标</span>
+      <div class="goal-item">基础主持流程控制</div>
+      <div class="goal-item">准确检测发言结束时机</div>
+      <div class="goal-item">数字人自然衔接发言</div>
+      <div class="goal-item">实时记录并生成评价</div>
+    </div>
+    <div class="goal-card">
+      <span class="goal-tag"><span class="tag-should">Should-have</span> 二级目标</span>
+      <div class="goal-item">支持临场应变处理</div>
+      <div class="goal-item">与现有 Skills 集成</div>
+      <div class="goal-item">处理观众反应场景</div>
+    </div>
+    <div class="goal-card">
+      <span class="goal-tag"><span class="tag-could">Could-have</span> 三级目标</span>
+      <div class="goal-item">多语言切换支持</div>
+      <div class="goal-item">情感分析与个性化</div>
+      <div class="goal-item">会后复盘分析</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">可行性评估</div>
+    <table class="table">
+      <thead><tr><th>维度</th><th>评估</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td>技术可行性</td><td><span class="chip chip-low">✓ 高</span></td><td>现有技术成熟，POMASA 架构清晰</td></tr>
+        <tr><td>经济可行性</td><td><span class="chip chip-mid">✓ 中</span></td><td>开发成本约 10 万元，运营成本可控</td></tr>
+        <tr><td>时间可行性</td><td><span class="chip chip-mid">✓ 中</span></td><td>到 12 月有充足时间，建议 MVP 优先</td></tr>
+        <tr><td>风险可控性</td><td><span class="chip chip-mid">✓ 中</span></td><td>主要风险有缓解策略，有人工兜底</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <div class="section-title">技术栈选型</div>
+    <table class="table">
+      <thead><tr><th>层级</th><th>选型</th><th>替代方案</th></tr></thead>
+      <tbody>
+        <tr><td>运行时</td><td style="font-weight:500">Claude Code</td><td style="color:var(--text3)">Cursor / Cline</td></tr>
+        <tr><td>语音识别</td><td style="font-weight:500">Google Speech-to-Text</td><td style="color:var(--text3)">Azure Speech / Whisper</td></tr>
+        <tr><td>语音合成</td><td style="font-weight:500">Azure TTS</td><td style="color:var(--text3)">AWS Polly / 阿里云 TTS</td></tr>
+        <tr><td>NLP 处理</td><td style="font-weight:500">spaCy + scikit-learn</td><td style="color:var(--text3)">HuggingFace Transformers</td></tr>
+        <tr><td>数字人渲染</td><td style="font-weight:500">Seedance</td><td style="color:var(--text3)">HeyGen / D-ID</td></tr>
+        <tr><td>数据存储</td><td style="font-weight:500">JSON / YAML 文件</td><td style="color:var(--text3)">SQLite</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- 架构 -->
+<div id="panel-arch" class="panel">
+  <div class="card">
+    <div class="section-title">POMASA 模式应用</div>
+    <table class="table">
+      <thead><tr><th>模式 ID</th><th>模式名称</th><th>必要性</th><th>应用说明</th></tr></thead>
+      <tbody>
+        <tr><td>COR-01</td><td>Prompt-Defined Agent</td><td><span class="chip chip-p0">Required</span></td><td>所有 Agent 均通过 Prompt 定义</td></tr>
+        <tr><td>COR-02</td><td>Intelligent Runtime</td><td><span class="chip chip-p0">Required</span></td><td>Claude Code 作为智能运行时</td></tr>
+        <tr><td>STR-01</td><td>Orchestrator-Worker</td><td><span class="chip chip-p0">Required</span></td><td>Orchestrator 协调各 Worker Agent</td></tr>
+        <tr><td>STR-03</td><td>File System Bus</td><td><span class="chip chip-p0">Required</span></td><td>通过文件系统进行 Agent 间通信</td></tr>
+        <tr><td>BHV-01</td><td>Chain-of-Thought</td><td><span class="chip chip-p1">Recommended</span></td><td>ResponseGenerator 使用思维链</td></tr>
+        <tr><td>QUA-01</td><td>Observability</td><td><span class="chip chip-p0">Required</span></td><td>完整的日志和状态追踪</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <div class="section-title">系统 Agent 三层架构</div>
+    <div class="agent-flow">
+      <div class="layer-label">定义层 · Definition Layer</div>
+      <div class="layer-box" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;padding:10px">
+        <span style="font-size:11px;color:var(--text2);padding:4px 8px;background:var(--bg2);border-radius:4px">00.orchestrator.md</span>
+        <span style="font-size:11px;color:var(--text2);padding:4px 8px;background:var(--bg2);border-radius:4px">01.human_detector.md</span>
+        <span style="font-size:11px;color:var(--text2);padding:4px 8px;background:var(--bg2);border-radius:4px">02.ai_line_deliver.md</span>
+        <span style="font-size:11px;color:var(--text2);padding:4px 8px;background:var(--bg2);border-radius:4px">03.context_analyzer.md</span>
+        <span style="font-size:11px;color:var(--text2);padding:4px 8px;background:var(--bg2);border-radius:4px">04.response_generator.md</span>
+        <span style="font-size:11px;color:var(--text2);padding:4px 8px;background:var(--bg2);border-radius:4px">05.speech_evaluator.md</span>
+      </div>
+      <div class="conn-line"></div>
+      <div class="layer-label">执行层 · Execution Layer</div>
+      <div class="layer-box">
+        <div class="agent-box agent-orch" style="margin:0 auto">🎯 Orchestrator（主持流程协调器）</div>
+        <div style="display:flex;justify-content:center;margin:6px 0"><div style="width:80%;height:1px;background:var(--border2)"></div></div>
+        <div class="agent-workers">
+          <div class="agent-w agent-w1">👂 HumanDetector<div style="font-size:10px;font-weight:400;margin-top:2px">语音端点检测</div></div>
+          <div class="agent-w agent-w2">🎤 AILineDeliver<div style="font-size:10px;font-weight:400;margin-top:2px">台词交付 &amp; TTS</div></div>
+          <div class="agent-w agent-w3">🧠 ContextAnalyzer<div style="font-size:10px;font-weight:400;margin-top:2px">上下文分析</div></div>
+          <div class="agent-w agent-w4">💬 ResponseGenerator<div style="font-size:10px;font-weight:400;margin-top:2px">应变响应生成</div></div>
+          <div class="agent-w agent-w5">📝 SpeechEvaluator<div style="font-size:10px;font-weight:400;margin-top:2px">演讲评价</div></div>
+        </div>
+      </div>
+      <div class="conn-line"></div>
+      <div class="layer-label">数据层 · Data Layer</div>
+      <div class="layer-box" style="display:flex;gap:24px;justify-content:center;align-items:center">
+        <div style="text-align:center"><div style="font-size:13px;font-weight:500">materials/</div><div style="font-size:11px;color:var(--text3)">原始材料</div></div>
+        <div style="width:1px;height:40px;background:var(--border)"></div>
+        <div style="text-align:center"><div style="font-size:13px;font-weight:500">drafts/</div><div style="font-size:11px;color:var(--text3)">中间状态</div></div>
+        <div style="width:1px;height:40px;background:var(--border)"></div>
+        <div style="text-align:center"><div style="font-size:13px;font-weight:500">final/</div><div style="font-size:11px;color:var(--text3)">最终产出</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">Orchestrator 状态机流转</div>
+    <div class="state-flow">
+      <span class="state-pill" style="background:#f1efe8;color:#444441">Initializing</span>
+      <span style="color:var(--text3)">→</span>
+      <span class="state-pill" style="background:#f1efe8;color:#444441">Idle</span>
+      <span style="color:var(--text3)">→</span>
+      <span class="state-pill" style="background:#e1f5ee;color:#085041">WaitingHuman</span>
+      <span style="color:var(--text3)">→</span>
+      <span class="state-pill" style="background:#e6f1fb;color:#0c447c">HumanSpeaking</span>
+      <span style="color:var(--text3)">→</span>
+      <span class="state-pill" style="background:#faeeda;color:#633806">Analyzing</span>
+      <span style="color:var(--text3)">→</span>
+      <span class="state-pill" style="background:#eeedfe;color:#3c3489">Generating</span>
+      <span style="color:var(--text3)">→</span>
+      <span class="state-pill" style="background:#faece7;color:#712b13">AISpeaking</span>
+      <span style="color:var(--text3)">→</span>
+      <span class="state-pill" style="background:#f1efe8;color:#444441">Finalizing</span>
+    </div>
+    <div style="font-size:11px;color:var(--text3);text-align:center;margin-top:8px">AISpeaking → Interrupted（用户打断）→ Analyzing（形成循环）</div>
+  </div>
+</div>
+
+<!-- 挑战 -->
+<div id="panel-challenges" class="panel">
+  <div class="card">
+    <div class="section-title">核心挑战矩阵</div>
+    <table class="table">
+      <thead><tr><th>ID</th><th>挑战描述</th><th>严重程度</th><th>技术难度</th><th>优先级</th></tr></thead>
+      <tbody>
+        <tr><td style="font-weight:500;color:var(--text2)">CH-01</td><td>语音端点检测（VAD）准确率</td><td><span class="chip chip-high">高</span></td><td><span class="chip chip-mid">中</span></td><td><span class="chip chip-p0">P0</span></td></tr>
+        <tr><td style="font-weight:500;color:var(--text2)">CH-02</td><td>TTS 响应延迟控制</td><td><span class="chip chip-mid">中</span></td><td><span class="chip chip-mid">中</span></td><td><span class="chip chip-p0">P0</span></td></tr>
+        <tr><td style="font-weight:500;color:var(--text2)">CH-05</td><td>系统长时间运行稳定性</td><td><span class="chip chip-high">高</span></td><td><span class="chip chip-mid">中</span></td><td><span class="chip chip-p0">P0</span></td></tr>
+        <tr><td style="font-weight:500;color:var(--text2)">CH-03</td><td>上下文理解与相似度计算</td><td><span class="chip chip-mid">中</span></td><td><span class="chip chip-mid">中</span></td><td><span class="chip chip-p1">P1</span></td></tr>
+        <tr><td style="font-weight:500;color:var(--text2)">CH-04</td><td>应变响应自然度</td><td><span class="chip chip-mid">中</span></td><td><span class="chip chip-high">高</span></td><td><span class="chip chip-p1">P1</span></td></tr>
+        <tr><td style="font-weight:500;color:var(--text2)">CH-06</td><td>演讲评价专业度</td><td><span class="chip chip-mid">中</span></td><td><span class="chip chip-mid">中</span></td><td><span class="chip chip-p2">P2</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="two-col">
+    <div class="card">
+      <div class="section-title">VAD 三重检测机制</div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="background:var(--bg2);padding:10px;border-radius:var(--r-md)">
+          <div style="font-size:12px;font-weight:500;margin-bottom:3px">① 音量检测</div>
+          <div style="font-size:12px;color:var(--text2)">RMS 音量阈值 500，超过即标为有声状态</div>
+        </div>
+        <div style="background:var(--bg2);padding:10px;border-radius:var(--r-md)">
+          <div style="font-size:12px;font-weight:500;margin-bottom:3px">② 静默时长</div>
+          <div style="font-size:12px;color:var(--text2)">连续静默 ≥ 2.0 秒，判定为发言结束</div>
+        </div>
+        <div style="background:var(--bg2);padding:10px;border-radius:var(--r-md)">
+          <div style="font-size:12px;font-weight:500;margin-bottom:3px">③ 语义理解</div>
+          <div style="font-size:12px;color:var(--text2)">句意是否完整，避免误判短暂停顿</div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="section-title">响应生成优先级策略</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;align-items:center;gap:10px;font-size:12px">
+          <span style="background:#e1f5ee;color:#085041;padding:3px 9px;border-radius:4px;font-weight:500;min-width:22px;text-align:center">1</span>
+          <span>基于上下文的预制响应（最快、最可控）</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;font-size:12px">
+          <span style="background:#eaf3de;color:#3b6d11;padding:3px 9px;border-radius:4px;font-weight:500;min-width:22px;text-align:center">2</span>
+          <span>通用预制响应（较快、可控）</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;font-size:12px">
+          <span style="background:#faeeda;color:#854f0b;padding:3px 9px;border-radius:4px;font-weight:500;min-width:22px;text-align:center">3</span>
+          <span>特定场景 LLM 生成（较慢、灵活）</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;font-size:12px">
+          <span style="background:#fcebeb;color:#a32d2d;padding:3px 9px;border-radius:4px;font-weight:500;min-width:22px;text-align:center">4</span>
+          <span>通用 LLM 生成（最慢、兜底）</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 成本 -->
+<div id="panel-cost" class="panel">
+  <div class="metric-grid">
+    <div class="metric"><span class="metric-lbl">人力成本</span><span class="metric-val">¥65,000</span><div class="metric-sub">5人 · 架构+开发+测试</div></div>
+    <div class="metric"><span class="metric-lbl">硬件设备</span><span class="metric-val">¥11,000</span><div class="metric-sub">服务器 + 音频设备</div></div>
+    <div class="metric"><span class="metric-lbl">软件服务</span><span class="metric-val">¥26,600</span><div class="metric-sub">API + 云服务 + 工具</div></div>
+    <div class="metric"><span class="metric-lbl">年运营</span><span class="metric-val">¥33,985</span><div class="metric-sub">云 + API + 运维人力</div></div>
+  </div>
+  <div class="two-col">
+    <div class="card">
+      <div class="section-title">开发阶段成本构成</div>
+      <div style="display:flex;gap:8px;margin-bottom:10px;font-size:11px;color:var(--text2)">
+        <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#7f77dd;display:inline-block"></span>人力 ¥65K</span>
+        <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#1d9e75;display:inline-block"></span>软件 ¥26.6K</span>
+        <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#ba7517;display:inline-block"></span>硬件 ¥11K</span>
+      </div>
+      <div style="position:relative;height:200px"><canvas id="costDevChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="section-title">年度运营成本构成</div>
+      <div style="display:flex;gap:8px;margin-bottom:10px;font-size:11px;color:var(--text2)">
+        <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#d85a30;display:inline-block"></span>运维 ¥25.8K</span>
+        <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#378add;display:inline-block"></span>云 ¥8K</span>
+        <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#d4537e;display:inline-block"></span>API ¥145</span>
+      </div>
+      <div style="position:relative;height:200px"><canvas id="costOpsChart"></canvas></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="section-title">成本优化策略</div>
+    <table class="table">
+      <thead><tr><th>优化方向</th><th>措施</th><th>预期节省</th></tr></thead>
+      <tbody>
+        <tr><td>TTS 成本</td><td>预生成常用台词，缓存命中 &gt; 80%</td><td><span style="font-weight:600;color:#0f6e56">70–80%</span></td></tr>
+        <tr><td>语音识别成本</td><td>离线 Whisper 替代（准确度可接受时）</td><td><span style="font-weight:600;color:#0f6e56">90%+</span></td></tr>
+        <tr><td>Claude API 成本</td><td>混合架构，只在必要时调用</td><td><span style="font-weight:600;color:#0f6e56">50–70%</span></td></tr>
+        <tr><td>开发成本</td><td>使用 Claude Code 辅助开发</td><td><span style="font-weight:600;color:#0f6e56">30–50%</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- 路线图 -->
+<div id="panel-roadmap" class="panel">
+  <div class="two-col">
+    <div class="card">
+      <div class="timeline">
+        <div class="tl-item"><div class="tl-dot tl-dot-done"></div><div class="tl-head">Phase 1 · 准备与规划</div><div class="tl-date">2026-03-13 ~ 03-20 · 1周</div><div class="tl-tasks">调研报告确认 · 技术架构评审 · 开发环境搭建</div><div class="progress-bar"><div class="progress-fill" style="width:100%;background:#1d9e75"></div></div></div>
+        <div class="tl-item"><div class="tl-dot tl-dot-active"></div><div class="tl-head">Phase 2 · MVP 基础框架</div><div class="tl-date">2026-03-21 ~ 04-10 · 3周</div><div class="tl-tasks">POMASA 目录结构 · Orchestrator 框架 · 状态机管理</div><div class="progress-bar"><div class="progress-fill" style="width:55%;background:#378add"></div></div></div>
+        <div class="tl-item"><div class="tl-dot tl-dot-future"></div><div class="tl-head">Phase 3 · MVP 语音交互</div><div class="tl-date">2026-04-11 ~ 04-24 · 2周</div><div class="tl-tasks">VAD 集成 · TTS 服务 · 音频缓存机制</div><div class="progress-bar"><div class="progress-fill" style="width:0%;background:#888780"></div></div></div>
+        <div class="tl-item"><div class="tl-dot tl-dot-future"></div><div class="tl-head">Phase 4 · 智能应变</div><div class="tl-date">2026-04-25 ~ 05-15 · 3周</div><div class="tl-tasks">上下文分析 · 相似度计算 · 响应生成</div><div class="progress-bar"><div class="progress-fill" style="width:0%;background:#888780"></div></div></div>
+        <div class="tl-item"><div class="tl-dot tl-dot-future"></div><div class="tl-head">Phase 5 · 演讲评价</div><div class="tl-date">2026-05-16 ~ 05-29 · 2周</div><div class="tl-tasks">实时要点记录 · 评价生成 · 报告输出</div><div class="progress-bar"><div class="progress-fill" style="width:0%;background:#888780"></div></div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="timeline">
+        <div class="tl-item"><div class="tl-dot tl-dot-future"></div><div class="tl-head">Phase 6 · Seedance 集成</div><div class="tl-date">2026-05-30 ~ 06-12 · 2周</div><div class="tl-tasks">API 调研 · 控制指令 · 表情动作触发</div><div class="progress-bar"><div class="progress-fill" style="width:0%;background:#888780"></div></div></div>
+        <div class="tl-item"><div class="tl-dot tl-dot-future"></div><div class="tl-head">Phase 7 · 系统测试与优化</div><div class="tl-date">2026-06-13 ~ 07-03 · 3周</div><div class="tl-tasks">完整功能测试 · 性能优化 · 稳定性测试 7×24h</div><div class="progress-bar"><div class="progress-fill" style="width:0%;background:#888780"></div></div></div>
+        <div class="tl-item"><div class="tl-dot tl-dot-future"></div><div class="tl-head">Phase 8 · 彩排与调整</div><div class="tl-date">2026-11-01 ~ 11-20 · 3周</div><div class="tl-tasks">导入主持稿 · 全流程彩排 ≥3次 · 应急演练</div><div class="progress-bar"><div class="progress-fill" style="width:0%;background:#888780"></div></div></div>
+        <div class="tl-item"><div class="tl-dot tl-dot-future"></div><div class="tl-head">Phase 9 · 现场部署</div><div class="tl-date">2026-11-21 ~ 11-30 · 1.5周</div><div class="tl-tasks">现场环境部署 · 网络测试 · 技术支持就位</div><div class="progress-bar"><div class="progress-fill" style="width:0%;background:#888780"></div></div></div>
+        <div class="tl-item">
+          <div style="position:absolute;left:-20px;top:2px;width:14px;height:14px;background:#7f77dd;border-radius:50%;display:flex;align-items:center;justify-content:center"><span style="color:white;font-size:9px;line-height:1">★</span></div>
+          <div class="tl-head" style="color:#534ab7">🎉 12月大会正式使用</div>
+          <div class="tl-date">2026-12-01 · 上海技术大会</div>
+          <div class="tl-tasks">双机热备 · 现场技术支持 · 人工接管预案 · 全程录像</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 风险 -->
+<div id="panel-risk" class="panel">
+  <div class="card">
+    <div class="section-title">技术风险</div>
+    <div class="risk-grid">
+      <div class="risk-item risk-h"><div class="risk-title">TR-01 · VAD 准确率不足</div><div class="risk-desc">语音端点检测误判导致尴尬中断或冷场</div><div class="risk-meta"><span class="chip chip-high">高风险</span><span class="chip chip-mid">中概率</span></div><div style="font-size:11px;color:var(--text3);margin-top:6px">三重检测 · 可配置阈值 · 人工兜底按钮</div></div>
+      <div class="risk-item risk-m"><div class="risk-title">TR-02 · TTS 响应延迟过高</div><div class="risk-desc">用户结束发言到 AI 接话的间隔过长</div><div class="risk-meta"><span class="chip chip-mid">中风险</span><span class="chip chip-mid">中概率</span></div><div style="font-size:11px;color:var(--text3);margin-top:6px">预生成台词 · 音频缓存 · 流式 TTS</div></div>
+      <div class="risk-item risk-m"><div class="risk-title">TR-03 · 应变响应不自然</div><div class="risk-desc">LLM 生成内容缺乏真实感或逻辑连贯性</div><div class="risk-meta"><span class="chip chip-mid">中风险</span><span class="chip chip-mid">中概率</span></div><div style="font-size:11px;color:var(--text3);margin-top:6px">预制库优先 · 人工审核模板 · A/B 测试</div></div>
+      <div class="risk-item risk-m"><div class="risk-title">TR-05 · Seedance 集成困难</div><div class="risk-desc">第三方平台 API 不稳定或功能受限</div><div class="risk-meta"><span class="chip chip-mid">中风险</span><span class="chip chip-mid">中概率</span></div><div style="font-size:11px;color:var(--text3);margin-top:6px">早期验证 · 备用纯音频方案</div></div>
+    </div>
+  </div>
+  <div class="two-col">
+    <div class="card">
+      <div class="section-title">业务风险</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div class="risk-item risk-m"><div class="risk-title">BR-01 · 主持稿延迟提供</div><div style="font-size:11px;color:var(--text3);margin-top:4px">模板化结构 · 热加载支持 · 分阶段交付</div></div>
+        <div class="risk-item risk-m"><div class="risk-title">BR-02 · 用户接受度低</div><div style="font-size:11px;color:var(--text3);margin-top:4px">早期用户测试 · 充分彩排 · 随时接管</div></div>
+        <div class="risk-item risk-m"><div class="risk-title">BR-03 · 现场网络不稳定</div><div style="font-size:11px;color:var(--text3);margin-top:4px">离线模式 · 本地缓存 · 多网络备用</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="section-title">成本风险</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div class="risk-item risk-m"><div class="risk-title">CR-01 · API 用量超预期</div><div style="font-size:11px;color:var(--text3);margin-top:4px">用量监控告警 · 自动降级 · 成本上限</div></div>
+        <div class="risk-item risk-m"><div class="risk-title">CR-02 · 开发周期延长</div><div style="font-size:11px;color:var(--text3);margin-top:4px">MVP 优先 · 分阶段交付 · 缓冲时间</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 质量 -->
+<div id="panel-quality" class="panel">
+  <div class="card">
+    <div class="section-title">质量指标目标值</div>
+    <div class="quality-grid">
+      <div class="quality-item"><div class="quality-label">VAD 端点检测准确率</div><div class="quality-target">≥ 95%</div><div class="quality-method">标注测试集验证</div><div class="progress-bar" style="margin-top:8px"><div class="progress-fill" style="width:95%;background:#1d9e75"></div></div></div>
+      <div class="quality-item"><div class="quality-label">从用户结束到 AI 开始响应</div><div class="quality-target">&lt; 2 秒</div><div class="quality-method">端到端计时测量</div><div class="progress-bar" style="margin-top:8px"><div class="progress-fill" style="width:80%;background:#378add"></div></div></div>
+      <div class="quality-item"><div class="quality-label">大会期间系统可用性</div><div class="quality-target">100%</div><div class="quality-method">运行日志监控</div><div class="progress-bar" style="margin-top:8px"><div class="progress-fill" style="width:100%;background:#1d9e75"></div></div></div>
+      <div class="quality-item"><div class="quality-label">用户满意度评分</div><div class="quality-target">≥ 4.0 / 5.0</div><div class="quality-method">会后主观评价问卷</div><div class="progress-bar" style="margin-top:8px"><div class="progress-fill" style="width:80%;background:#ba7517"></div></div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="section-title">测试场景覆盖</div>
+    <table class="table">
+      <thead><tr><th>测试场景</th><th>预期结果</th></tr></thead>
+      <tbody>
+        <tr><td>正常流程</td><td>按预定台词顺序执行</td></tr>
+        <tr><td>用户打断</td><td>立即停止，记录，自然衔接</td></tr>
+        <tr><td>话题偏离</td><td>检测到偏离，引导回流程</td></tr>
+        <tr><td>超时未响应</td><td>生成提示语，继续推进</td></tr>
+        <tr><td>网络中断</td><td>使用本地缓存，降级运行</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="card">
+    <div class="section-title">附录 · 检查清单</div>
+    <div class="checklist-grid">
+      <div style="font-size:12px;color:#0f6e56;background:#e1f5ee;padding:5px 12px;border-radius:5px">✓ 项目目标明确</div>
+      <div style="font-size:12px;color:#0f6e56;background:#e1f5ee;padding:5px 12px;border-radius:5px">✓ 技术架构设计完成</div>
+      <div style="font-size:12px;color:#0f6e56;background:#e1f5ee;padding:5px 12px;border-radius:5px">✓ 成本估算完成</div>
+      <div style="font-size:12px;color:#0f6e56;background:#e1f5ee;padding:5px 12px;border-radius:5px">✓ 风险分析完成</div>
+      <div style="font-size:12px;color:#0f6e56;background:#e1f5ee;padding:5px 12px;border-radius:5px">✓ 实施路线图制定</div>
+      <div style="font-size:12px;color:#a32d2d;background:#fcebeb;padding:5px 12px;border-radius:5px">○ 主持稿模板待确认</div>
+      <div style="font-size:12px;color:#a32d2d;background:#fcebeb;padding:5px 12px;border-radius:5px">○ Seedance 集成方案待确认</div>
+      <div style="font-size:12px;color:#a32d2d;background:#fcebeb;padding:5px 12px;border-radius:5px">○ 开发团队待组建</div>
+    </div>
+  </div>
+</div>
+
+</div><!-- .page -->
+
+<script>
+function switchTab(id) {
+  var ids = ['overview','arch','challenges','cost','roadmap','risk','quality'];
+  document.querySelectorAll('.tab').forEach(function(t, i) {
+    t.classList.toggle('active', ids[i] === id);
+  });
+  document.querySelectorAll('.panel').forEach(function(p) {
+    p.classList.toggle('active', p.id === 'panel-' + id);
+  });
+  if (id === 'cost') setTimeout(initCharts, 50);
+}
+
+var chartsInited = false;
+function initCharts() {
+  if (chartsInited) return;
+  chartsInited = true;
+
+  new Chart(document.getElementById('costDevChart'), {
+    type: 'doughnut',
+    data: {
+      labels: ['人力成本', '软件服务', '硬件设备'],
+      datasets: [{ data: [65000, 26600, 11000], backgroundColor: ['#7f77dd','#1d9e75','#ba7517'], borderWidth: 3, borderColor: '#ffffff' }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: function(ctx) { return ' ¥' + ctx.raw.toLocaleString(); } } } } }
+  });
+
+  new Chart(document.getElementById('costOpsChart'), {
+    type: 'doughnut',
+    data: {
+      labels: ['运维人力', '云基础设施', 'API 使用'],
+      datasets: [{ data: [25800, 8040, 145], backgroundColor: ['#d85a30','#378add','#d4537e'], borderWidth: 3, borderColor: '#ffffff' }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: function(ctx) { return ' ¥' + ctx.raw.toLocaleString(); } } } } }
+  });
+}
+</script>
+</body>
+</html>
